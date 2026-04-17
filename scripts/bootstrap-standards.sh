@@ -46,12 +46,19 @@ create_if_missing() {
 }
 
 fetch_from_source() {
-  # $1 = filename inside engineering-standards repo
-  # $2 = target path
+  # $1 = path inside engineering-standards repo (e.g., "CLAUDE.md" or "scripts/sync-standards.sh")
+  # $2 = destination path on disk
+  # Priority: local path → gh api (handles private repos) → curl (public only)
   local name="$1" target="$2"
   if [[ -n "${STANDARDS_SOURCE}" && -f "${STANDARDS_SOURCE}/${name}" ]]; then
     cp "${STANDARDS_SOURCE}/${name}" "${target}"
     return 0
+  fi
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    if gh api "repos/uspdan/engineering-standards/contents/${name}" \
+        -H 'Accept: application/vnd.github.raw' > "${target}" 2>/dev/null; then
+      return 0
+    fi
   fi
   curl -fsSL --max-time 15 -o "${target}" "${REMOTE_BASE}/${name}"
 }

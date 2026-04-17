@@ -39,7 +39,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Fetch `${1}` → `${2}`. Prefers STANDARDS_LOCAL_PATH; falls back to remote.
+# Fetch `${1}` → `${2}`.
+# Priority: STANDARDS_LOCAL_PATH → gh api (authenticated; works for private
+# repos) → curl (falls through for public repos without gh).
 fetch_file() {
   local name="$1"
   local dest="$2"
@@ -49,9 +51,16 @@ fetch_file() {
     return 0
   fi
 
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    if gh api "repos/uspdan/engineering-standards/contents/${name}?ref=${REF}" \
+        -H 'Accept: application/vnd.github.raw' > "${dest}" 2>/dev/null; then
+      return 0
+    fi
+  fi
+
   local url="${REMOTE}/${REF}/${name}"
   if ! curl -fsSL --max-time 15 -o "${dest}" "${url}"; then
-    echo "[ERROR] Failed to fetch ${url}" >&2
+    echo "[ERROR] Failed to fetch ${name} (gh api + ${url} both failed)" >&2
     return 1
   fi
 }
