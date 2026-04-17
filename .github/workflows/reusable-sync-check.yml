@@ -1,0 +1,63 @@
+name: reusable-sync-check
+
+# Reusable workflow — downstream `uspdan/*` repos call this from their own
+# CI to verify their local copies of CLAUDE.md / CLAUDE.agent.md /
+# LEARNINGS.md match the canonical versions in engineering-standards.
+#
+# Caller example:
+#   jobs:
+#     sync-standards-check:
+#       uses: uspdan/engineering-standards/.github/workflows/reusable-sync-check.yml@main
+#       with:
+#         ref: main    # optional; pin to a tag for stability
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'engineering-standards ref to compare against (branch, tag, or SHA)'
+        type: string
+        required: false
+        default: 'main'
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout caller repo
+        uses: actions/checkout@v4
+
+      - name: check for drift against engineering-standards
+        env:
+          REF: ${{ inputs.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://raw.githubusercontent.com/uspdan/engineering-standards/${REF}"
+          drift=0
+          for f in CLAUDE.md CLAUDE.agent.md LEARNINGS.md; do
+            if [[ ! -f "$f" ]]; then
+              echo "::error file=$f::$f is missing in this repo but exists in engineering-standards@${REF}"
+              drift=$((drift+1))
+              continue
+            fi
+            fresh=$(mktemp)
+            if ! curl -fsSL --max-time 15 -o "$fresh" "$BASE/$f"; then
+              echo "::warning::could not fetch $BASE/$f — skipping"
+              rm -f "$fresh"
+              continue
+            fi
+            if ! diff -q "$f" "$fresh" > /dev/null 2>&1; then
+              echo "::error file=$f::$f has drifted from engineering-standards@${REF}"
+              diff -u "$f" "$fresh" | head -80 || true
+              drift=$((drift+1))
+            else
+              echo "[OK] $f is in sync"
+            fi
+            rm -f "$fresh"
+          done
+          if [[ $drift -gt 0 ]]; then
+            echo ""
+            echo "::error::$drift file(s) drifted. Run: scripts/sync-standards.sh (from the engineering-standards repo or its local copy) then commit + push."
+            exit 1
+          fi

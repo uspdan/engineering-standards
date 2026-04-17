@@ -1,0 +1,6 @@
+# CODEOWNERS for engineering-standards.
+# Every PR auto-requests review from these owners.
+# Combined with branch protection's "require code owner review",
+# nothing merges without explicit owner sign-off.
+
+* @uspdan

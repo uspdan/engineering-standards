@@ -1,0 +1,37 @@
+# Dependabot — weekly checks across the ecosystems this repo uses.
+# Currently github-actions only (no npm deps yet). Adding npm ahead of time
+# so that if we ever introduce a tool (markdownlint-cli2, etc.) it's caught.
+
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Australia/Sydney
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      ci-tooling:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Australia/Sydney
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      production-deps:
+        dependency-type: production
+      dev-deps:
+        dependency-type: development
