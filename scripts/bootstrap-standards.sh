@@ -389,6 +389,143 @@ HOOK_EOF
   chmod +x "${PROJECT_ROOT}/.husky/pre-commit"
 fi
 
+# ── 12. Pre-push hook: reject direct pushes to main ──────────────────
+# We don't have GitHub branch protection (requires Pro on private repos),
+# so this + the server-side direct-push-audit workflow are our enforcement
+# for "everything goes through a PR". Bypassable by design (--no-verify,
+# or an env-var override for genuine emergencies). The server-side audit
+# workflow catches bypasses and makes them loud.
+if create_if_missing "${PROJECT_ROOT}/.husky/pre-push" "pre-push hook (reject direct pushes to main)"; then
+  cat > "${PROJECT_ROOT}/.husky/pre-push" << 'PP_HOOK_EOF'
+#!/usr/bin/env bash
+# Pre-push hook — refuse to push directly to main.
+#
+# Every change must go through a PR. Use 'gh pr create' or the GitHub UI.
+# Emergency override (documented in docs/runbooks/incident-response.md):
+#   ALLOW_PUSH_TO_MAIN=1 git push
+#   — or —
+#   git push --no-verify
+
+set -e
+
+REMOTE="$1"
+URL="$2"
+
+if [[ "${ALLOW_PUSH_TO_MAIN:-0}" == "1" ]]; then
+  echo "[pre-push] ALLOW_PUSH_TO_MAIN=1 set — bypassing main protection (audit-logged on server)."
+  exit 0
+fi
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # remote_ref looks like refs/heads/main
+  if [[ "${remote_ref}" == "refs/heads/main" ]]; then
+    # Allow the initial push to a new empty branch? The server-side audit
+    # workflow will confirm whether the push looked like a PR merge or a
+    # direct push — so reject unconditionally here for safety.
+    echo "" >&2
+    echo "[pre-push] REJECTED — direct push to ${REMOTE}/main is not allowed." >&2
+    echo "" >&2
+    echo "  Open a pull request instead:" >&2
+    echo "    gh pr create --title '<type>(<scope>): <description>'" >&2
+    echo "" >&2
+    echo "  Emergency bypass (documented in the incident runbook):" >&2
+    echo "    ALLOW_PUSH_TO_MAIN=1 git push" >&2
+    echo "    — or —" >&2
+    echo "    git push --no-verify" >&2
+    echo "" >&2
+    echo "  The server-side direct-push-audit workflow will open an issue" >&2
+    echo "  if a bypass reaches origin/main." >&2
+    exit 1
+  fi
+done
+
+exit 0
+PP_HOOK_EOF
+  chmod +x "${PROJECT_ROOT}/.husky/pre-push"
+fi
+
+# ── 13. Direct-push audit workflow (server-side backstop) ────────────
+if create_if_missing "${PROJECT_ROOT}/.github/workflows/direct-push-audit.yml" "direct-push audit workflow"; then
+  cat > "${PROJECT_ROOT}/.github/workflows/direct-push-audit.yml" << 'DPA_EOF'
+# Runs after every push to main. Opens an audit issue if the push did not
+# come from a merged PR (i.e. someone bypassed the pre-push hook and
+# pushed directly). Noisy by design — if you see these, something needs
+# addressing: either the push was legitimate (emergency) and should be
+# documented, or it was a mistake.
+name: direct-push-audit
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  issues: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 1 }
+
+      - name: check if push came from a merged PR
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          PUSHER: ${{ github.event.pusher.name }}
+        run: |
+          set -e
+          # PR-merge commits (squash-merge via GitHub) have the pattern
+          # "(#<number>)" at the end of the title. Check if any PR is
+          # associated with this commit via the GitHub API.
+          prs=$(gh api "repos/${{ github.repository }}/commits/${COMMIT_SHA}/pulls" --jq 'length' || echo 0)
+          echo "prs=${prs}"
+          if [[ "${prs}" -gt 0 ]]; then
+            echo "came_from_pr=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "came_from_pr=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: open audit issue for direct push
+        if: steps.check.outputs.came_from_pr == 'false' && github.event.forced == false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
+          PUSHER: ${{ github.event.pusher.name }}
+          COMPARE_URL: ${{ github.event.compare }}
+        run: |
+          set -e
+          TITLE="Direct push to main bypassed PR workflow (${COMMIT_SHA:0:7})"
+          BODY=$(cat <<BODY_EOF
+          A push to \`main\` was made without an associated pull request.
+
+          - **Commit**: ${COMMIT_SHA}
+          - **Pusher**: @${PUSHER}
+          - **Diff**: ${COMPARE_URL}
+
+          Please either:
+          1. Revert if this was a mistake, or
+          2. Document it in \`docs/runbooks/incident-response.md\` under "break-glass pushes" within 24 hours.
+
+          This issue is auto-opened by \`.github/workflows/direct-push-audit.yml\`.
+          BODY_EOF
+          )
+          gh issue create \
+            --title "${TITLE}" \
+            --body "${BODY}" \
+            --label "audit,direct-push"
+
+      - name: flag force-push
+        if: github.event.forced == true
+        run: |
+          echo "::warning::main was force-pushed. This is a destructive operation; verify it was intentional and audit-logged."
+DPA_EOF
+fi
+
 # Activate the husky directory if .git exists (one-liner, idempotent).
 if [[ -d "${PROJECT_ROOT}/.git" ]]; then
   git -C "${PROJECT_ROOT}" config core.hooksPath .husky
