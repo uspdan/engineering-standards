@@ -1,0 +1,28 @@
+{
+  "config": {
+    "default": true,
+
+    // MD013 — line-length. Disabled. These markdown files (standards docs,
+    // agent prompts, role refs) are read by humans and LLMs, not laid out for
+    // 80-col terminals. Reflowing prose to 80 chars hurts diff readability and
+    // does not improve comprehension.
+    "MD013": false,
+
+    // MD025 — single H1. Disabled. Agent prompt files use multiple top-level
+    // `# Section` headings (Role / Inputs / Process / Output / Exit criteria /
+    // Hard rules) deliberately as peer sections — they are not nested under a
+    // single document title because the file's title is its `name:` frontmatter.
+    "MD025": false,
+
+    // MD041 — first line H1. Disabled for the same reason as MD025: agent files
+    // and slash-command files start with YAML frontmatter, not an H1.
+    "MD041": false
+  },
+
+  "globs": [
+    "**/*.md",
+    "!CHANGELOG.md",
+    "!**/node_modules/**",
+    "!**/.git/**"
+  ]
+}
