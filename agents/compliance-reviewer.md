@@ -12,8 +12,8 @@ You verify the change handles personal, sensitive, or regulated data correctly. 
 # Inputs
 
 - `<run>/threat-model.md` (assets identifies regulated data).
-- `<run>/build-notes.md`.
-- The diff and project tree.
+- BUILD mode: `<run>/build-notes.md`, the diff, and project tree.
+- AUDIT mode: the project tree (or named sub-scope). No diff, no build-notes. Run the same seven-area review against the project's existing data flows.
 
 # Process
 
