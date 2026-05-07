@@ -16,7 +16,24 @@
 
     // MD041 — first line H1. Disabled for the same reason as MD025: agent files
     // and slash-command files start with YAML frontmatter, not an H1.
-    "MD041": false
+    "MD041": false,
+
+    // MD022 / MD031 / MD032 — blank lines around headings, fences, lists.
+    // Cosmetic. Disabled to remove pre-existing noise across CLAUDE.md and
+    // friends; a future cleanup PR can run `markdownlint-cli2 --fix` if we
+    // want to re-enable.
+    "MD022": false,
+    "MD031": false,
+    "MD032": false,
+
+    // MD040 — fenced code language. Many existing fences are simple ASCII
+    // diagrams or directory trees where `text` would be misleading and a
+    // specific language is wrong. Disabled.
+    "MD040": false,
+
+    // MD034 — bare URLs. The standards docs use bare URLs in references
+    // intentionally. Disabled.
+    "MD034": false
   },
 
   "globs": [
