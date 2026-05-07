@@ -16,6 +16,9 @@ jobs:
         with:
           globs: |
             *.md
+            agents/*.md
+            commands/*.md
+            refs/**/*.md
             !CHANGELOG.md
 
   link-check:
@@ -32,4 +35,40 @@ jobs:
             --exclude-path node_modules
             --exclude '^https?://(localhost|127\.0\.0\.1|.*\.example).*'
             CLAUDE.md CLAUDE.agent.md LEARNINGS.md WORKFLOW.md README.md
+            agents/*.md commands/*.md refs/**/*.md
           fail: true
+
+  shellcheck:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: shellcheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        env:
+          SHELLCHECK_OPTS: -e SC2155 -e SC2086
+        with:
+          scandir: ./scripts
+          severity: warning
+
+  agent-frontmatter:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: verify every agent has required frontmatter
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in agents/*.md; do
+            head=$(head -10 "$f")
+            for key in name description tools model; do
+              if ! grep -qE "^${key}:" <<<"$head"; then
+                echo "::error file=$f::missing frontmatter key '${key}'"
+                fail=1
+              fi
+            done
+          done
+          [[ $fail -eq 0 ]] || exit 1
+          echo "All agents have required frontmatter."

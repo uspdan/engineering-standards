@@ -98,6 +98,45 @@ Every project's CI includes a `sync-standards-check` job. It calls `engineering-
 
 To resolve a drift failure: run `scripts/sync-standards.sh` in the project, commit the result, push. Never edit `CLAUDE.md` in a downstream repo — the change belongs in the `engineering-standards` repo and propagates from there.
 
+## Secure-build pipeline (`/secure-build`)
+
+For any change that touches untrusted input, auth/crypto, regulated data, or could plausibly contain a logic flaw, run `/secure-build <task description>` *before* committing. It drives a coordinated team of specialist subagents through a deterministic 10-phase pipeline and produces a written audit trail under `<project>/.claude/runs/<UTC-ts>-<slug>/`.
+
+Phases:
+
+```
+1. INTAKE       — restate task, identify trust boundaries / regulated data
+2. INVENTORY    — find existing utils to reuse before writing new code
+3. ARCHITECT    — threat-model.md (gate: must approve before build)
+4. BUILD        — implement against architect's contract; tests in-line
+5. HARDEN       — defensive guards, allow-lists, fail-closed, timeouts, redaction
+6. INTERNAL QA  — code-reviewer + appsec-reviewer + qa-engineer in parallel
+7. RED TEAM     — runnable PoCs against threat-model controls (local scope only)
+8. COMPLIANCE   — privacy/regulatory review when PII/audit applicable
+9. CODEX        — OpenAI Codex review as external validator; loop until clean (cap 3)
+10. SIGN-OFF    — summary.md with verdict + artifact index
+```
+
+Specialists: `orchestrator`, `security-architect`, `software-engineer`, `defensive-engineer`, `code-reviewer`, `appsec-reviewer`, `qa-engineer`, `red-team`, `compliance-reviewer`, `codex-liaison`. Each has scoped tools and a written exit artifact — a human in that role can read the artifact and sign off without re-doing the work.
+
+### One-time setup
+
+```bash
+cd <path-to>/engineering-standards
+./scripts/install-secure-build.sh        # writes ~/.claude/agents/, commands/, refs/, scripts/
+codex login                              # auth Codex CLI for the external validation loop
+```
+
+The installer is idempotent — re-run it whenever the agent team is updated upstream. Existing user files are backed up to `~/.claude/.backups/<timestamp>/` before any overwrite.
+
+Note: this installs at the **user level** (`~/.claude/`) so `/secure-build` is available in every project. The per-project `bootstrap-standards.sh` and `sync-standards.sh` continue to handle project-level scaffolding (`CLAUDE.md`, ADRs, CI configs); they intentionally do not touch user-level files.
+
+### Where it fits in the workflow
+
+`/secure-build` runs *between* "feature spec" and "first commit". It is not a replacement for code review on the PR — it raises the floor of what gets pushed. Reviewers still review.
+
+For docs-only or config-only PRs the orchestrator short-circuits to a reduced pipeline (intake → build → Codex). The decision is recorded in `intake.md` for the run.
+
 ## Pre-commit hooks (local fast feedback)
 
 Every project installs `.husky/pre-commit` that runs:
