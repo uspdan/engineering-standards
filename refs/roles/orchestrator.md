@@ -63,15 +63,23 @@ Run in order. A phase exits **only** when its named artifact is on disk. If a ph
 
 ### Phase 7 — RED TEAM
 - Invoke `red-team` subagent.
-- Wait for `<run>/redteam-report.md`.
+- Wait for `<run>/redteam-report.md` and the supporting `<run>/redteam/launch.{md,log}`.
 - Every EXPLOITED finding routes back: design failure → architect; implementation failure → defender + builder. Re-run phases 5-6 for re-tested code, then phase 7 again.
 
-### Phase 8 — COMPLIANCE (conditional)
+### Phase 8 — BLUE TEAM
+- Invoke `blue-team` subagent. It consumes the red-team's launch log and PoC outputs.
+- Wait for `<run>/blueteam-report.md`.
+- Verdicts:
+  - **CLEAR** → proceed.
+  - **DETECTION-GAPS** (any Critical/High finding) → route to defensive-engineer to add the missing log lines / audit entries / detection signals; re-run blue-team only.
+  - **SILENT-COMPROMISE** (an EXPLOITED red-team attempt left no log trace) → Critical. Route to defender + builder; re-run phase 7 (to confirm the new logging actually fires under the same attack), then re-run phase 8.
+
+### Phase 9 — COMPLIANCE (conditional)
 - Skip unless intake flagged regulated data.
 - Invoke `compliance-reviewer`. Wait for `<run>/compliance-note.md`.
 - REQUIRES-LEGAL-REVIEW → escalate to user; status PAUSED-FOR-LEGAL.
 
-### Phase 9 — CODEX
+### Phase 10 — CODEX
 - Invoke `codex-liaison` subagent.
 - Wait for `<run>/codex/codex-summary.md`.
 - KICK-BACK → route findings by category:
@@ -84,7 +92,7 @@ Run in order. A phase exits **only** when its named artifact is on disk. If a ph
 - After fixes, only re-run the affected phases plus Codex.
 - Cap: 3 Codex iterations. If still failing, escalate to user.
 
-### Phase 10 — SIGN-OFF
+### Phase 11 — SIGN-OFF
 - Write `<run>/summary.md`:
 
 ```markdown
@@ -102,6 +110,9 @@ APPROVED | KICKED-BACK | BLOCKED-AT-DESIGN | PAUSED-FOR-LEGAL
 | Phase | Specialist | Verdict | Artifact |
 |-------|------------|---------|----------|
 | 3 Architect | security-architect | APPROVED-FOR-BUILD | threat-model.md |
+| ... |
+| 7 Red team | red-team | CLEAR | redteam-report.md |
+| 8 Blue team | blue-team | CLEAR | blueteam-report.md |
 | ... |
 
 ## Files changed in this run
@@ -123,6 +134,7 @@ APPROVED | KICKED-BACK | BLOCKED-AT-DESIGN | PAUSED-FOR-LEGAL
 - appsec-reviewer: ✅ clear
 - qa-engineer: ✅ adequate
 - red-team: ✅ no exploits
+- blue-team: ✅ detections in place
 - compliance: ✅ clear / N/A
 - codex: ✅ approved (N iterations)
 ```

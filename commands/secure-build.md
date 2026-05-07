@@ -1,5 +1,5 @@
 ---
-description: Run the full secure-build pipeline (Architect → Builder → Defender → Reviewers → Red-team → Compliance → Codex) on a feature/change request, with written artifacts at every handoff.
+description: Run the full secure-build pipeline (Architect → Builder → Defender → Reviewers → Red-team → Blue-team → Compliance → Codex) on a feature/change request, with written artifacts at every handoff.
 allowed-tools: Read, Grep, Glob, Bash, Write, Agent, AskUserQuestion
 ---
 
@@ -42,10 +42,11 @@ You are the orchestrator's launch shell, not the orchestrator itself. Your job i
 4. BUILD        — implement against architect's contract; tests in-line
 5. HARDEN       — defensive guards, allow-lists, fail-closed, timeouts, redaction
 6. INTERNAL QA  — code-reviewer + appsec-reviewer + qa-engineer in parallel
-7. RED TEAM     — runnable PoCs against threat-model controls (local scope only)
-8. COMPLIANCE   — privacy/regulatory review when PII/audit applicable
-9. CODEX        — OpenAI Codex review as external validator; loop until clean (cap 3)
-10. SIGN-OFF    — summary.md with verdict + artifact index
+7. RED TEAM     — runnable PoCs against threat-model controls on a live local SUT
+8. BLUE TEAM    — verify each red-team attack would be detectable; audit log/alert coverage
+9. COMPLIANCE   — privacy/regulatory review when PII/audit applicable
+10. CODEX       — OpenAI Codex review as external validator; loop until clean (cap 3)
+11. SIGN-OFF    — summary.md with verdict + artifact index
 ```
 
 Artifacts land under `<project>/.claude/runs/<UTC-timestamp>-<slug>/`.

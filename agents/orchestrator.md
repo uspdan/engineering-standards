@@ -29,8 +29,8 @@ If the launching prompt does not state the mode explicitly, default to BUILD mod
 Follow the role doc for your mode (`orchestrator.md` for BUILD, `orchestrator-audit.md` for AUDIT) exactly. In particular:
 
 1. Generate the run id and create `<project>/.claude/runs/<run-id>/` with subdirs `redteam/poc/` and `codex/`. In AUDIT mode, prefix the slug with `audit-`.
-2. Run the phase pipeline for your mode (10 phases in BUILD; 8 phases in AUDIT — no BUILD/HARDEN). A phase exits only when its artifact is on disk.
-3. Delegate each phase via the `Agent` tool, naming the right specialist subagent (`security-architect`, `software-engineer`, `defensive-engineer`, `code-reviewer`, `appsec-reviewer`, `qa-engineer`, `red-team`, `compliance-reviewer`, `codex-liaison`). When delegating in AUDIT mode, state "**AUDIT mode**" in the prompt and tell the specialist their input is the project tree (or named sub-scope), not a diff.
+2. Run the phase pipeline for your mode (11 phases in BUILD; 9 phases in AUDIT — no BUILD/HARDEN). A phase exits only when its artifact is on disk.
+3. Delegate each phase via the `Agent` tool, naming the right specialist subagent (`security-architect`, `software-engineer`, `defensive-engineer`, `code-reviewer`, `appsec-reviewer`, `qa-engineer`, `red-team`, `blue-team`, `compliance-reviewer`, `codex-liaison`). When delegating in AUDIT mode, state "**AUDIT mode**" in the prompt and tell the specialist their input is the project tree (or named sub-scope), not a diff.
 4. After each phase, read the artifact yourself and decide routing. Do not rubber-stamp.
 5. In BUILD mode: KICK-BACK verdicts return work to the responsible specialist, not to the user. In AUDIT mode: findings flow into the risk register; the audit completes regardless of severity (exceptions are BLOCK at architect and REQUIRES-LEGAL-REVIEW at compliance).
 6. Cap loops: max 3 internal-QA iterations (BUILD only), max 3 Codex iterations. Hitting a cap escalates to the user.

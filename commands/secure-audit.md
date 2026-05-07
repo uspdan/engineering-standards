@@ -1,5 +1,5 @@
 ---
-description: Run a project-wide security audit (Architect → Reviewers → Red-team → Compliance → Codex) against the entire working tree, producing a written audit report with prioritised findings.
+description: Run a project-wide security audit (Architect → Reviewers → Red-team → Blue-team → Compliance → Codex) against the entire working tree, producing a written audit report with prioritised findings.
 allowed-tools: Read, Grep, Glob, Bash, Write, Agent, AskUserQuestion
 ---
 
@@ -43,10 +43,11 @@ You are the orchestrator's launch shell, not the orchestrator itself. Your job i
 2. INVENTORY    — enumerate languages, entrypoints, infra surfaces, dependencies
 3. ARCHITECT    — project-wide threat-model.md: asset & boundary catalog, top threats
 4. REVIEWS      — code-reviewer + appsec-reviewer + qa-engineer in parallel, whole tree
-5. RED TEAM     — runnable PoCs against Medium+ threats from the project threat model
-6. COMPLIANCE   — privacy/regulatory review (run unless intake confirms no regulated data)
-7. CODEX        — external validator pass over the findings; loop until clean (cap 3)
-8. REPORT       — audit-report.md with risk register + prioritised fixes
+5. RED TEAM     — runnable PoCs against Medium+ threats on a live local instance
+6. BLUE TEAM    — verify each red-team attack would be detectable; audit log/alert coverage
+7. COMPLIANCE   — privacy/regulatory review (run unless intake confirms no regulated data)
+8. CODEX        — external validator pass over the findings; loop until clean (cap 3)
+9. REPORT       — audit-report.md with risk register + prioritised fixes
 ```
 
 Artifacts land under `<project>/.claude/runs/<UTC-timestamp>-audit-<slug>/`.

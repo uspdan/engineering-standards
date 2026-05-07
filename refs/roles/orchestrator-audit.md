@@ -73,16 +73,24 @@ Run in order. A phase exits **only** when its named artifact is on disk.
 
 ### Phase 5 — RED TEAM
 - Invoke `red-team`. Brief it: **AUDIT mode**, scope = the project workspace, threat model is project-wide.
-- Wait for `<run>/redteam-report.md`.
+- Wait for `<run>/redteam-report.md` and the supporting `<run>/redteam/launch.{md,log}`.
 - Every EXPLOITED finding is recorded in the risk register with severity Critical and a runnable PoC reference. No re-loop — fixes are out of scope for the audit.
 
-### Phase 6 — COMPLIANCE
+### Phase 6 — BLUE TEAM
+- Invoke `blue-team`. Brief it: **AUDIT mode**, project-wide log surface. It consumes the red-team's launch log and PoCs and verifies each attack would have been detectable.
+- Wait for `<run>/blueteam-report.md`.
+- Findings flow into the risk register:
+  - **SILENT-COMPROMISE** (EXPLOITED red-team attempt with zero log trace) → Critical row in the register.
+  - **DETECTION-GAPS** → High or Medium row depending on which threats are uncovered.
+- No re-loop — recommendations are written, fixes are out of scope for the audit.
+
+### Phase 7 — COMPLIANCE
 - Run unless intake recorded "no regulated data" with high confidence.
 - Invoke `compliance-reviewer`. Wait for `<run>/compliance-note.md`.
 - REQUIRES-LEGAL-REVIEW → escalate to user; status PAUSED-FOR-LEGAL.
 
-### Phase 7 — CODEX
-- Invoke `codex-liaison`. Brief it: **AUDIT mode** — its job is to validate the audit *findings* (not a diff). It reads `code-review.md`, `appsec-report.md`, `qa-report.md`, `redteam-report.md`, `compliance-note.md`, and the project threat model, and reports any false positives, missed issues, or contradictions.
+### Phase 8 — CODEX
+- Invoke `codex-liaison`. Brief it: **AUDIT mode** — its job is to validate the audit *findings* (not a diff). It reads `code-review.md`, `appsec-report.md`, `qa-report.md`, `redteam-report.md`, `blueteam-report.md`, `compliance-note.md`, and the project threat model, and reports any false positives, missed issues, or contradictions.
 - Wait for `<run>/codex/codex-summary.md`.
 - KICK-BACK → route Codex's *added* findings to the matching specialist for one re-pass:
   - new security finding → appsec-reviewer
@@ -92,7 +100,7 @@ Run in order. A phase exits **only** when its named artifact is on disk.
 - Codex flagging an existing finding as a false positive → drop or down-grade in the report (record the decision in `audit-report.md`).
 - Cap: 3 Codex iterations. If still failing, escalate to user.
 
-### Phase 8 — REPORT
+### Phase 9 — REPORT
 - Write `<run>/audit-report.md`:
 
 ```markdown
@@ -114,6 +122,7 @@ CLEAR | FINDINGS | BLOCKED-AT-DESIGN | PAUSED-FOR-LEGAL
 - Medium: N
 - Low: N
 - Exploited (red-team): N
+- Silent (blue-team — exploited with no log trace): N
 
 ## Top fixes (prioritised)
 1. <one line — file:line — what to do — why now>
@@ -134,8 +143,9 @@ CLEAR | FINDINGS | BLOCKED-AT-DESIGN | PAUSED-FOR-LEGAL
 | 4 AppSec | appsec-reviewer | FINDINGS-MUST-FIX | appsec-report.md |
 | 4 QA | qa-engineer | INSUFFICIENT-TESTS | qa-report.md |
 | 5 Red team | red-team | EXPLOITS-FOUND | redteam-report.md |
-| 6 Compliance | compliance-reviewer | CLEAR | compliance-note.md |
-| 7 Codex | codex-liaison | APPROVED (N iterations) | codex/codex-summary.md |
+| 6 Blue team | blue-team | DETECTION-GAPS | blueteam-report.md |
+| 7 Compliance | compliance-reviewer | CLEAR | compliance-note.md |
+| 8 Codex | codex-liaison | APPROVED (N iterations) | codex/codex-summary.md |
 
 ## Residual risks accepted
 - <each with one-line justification, or "none">
