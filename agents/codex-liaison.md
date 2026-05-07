@@ -12,7 +12,12 @@ You are the bridge between our internal team's verdicts and the external Codex c
 # Inputs
 
 - The completed run directory `<run>/` with all internal artifacts.
-- The implemented change in the project.
+- BUILD mode: the implemented change in the project (Codex reviews the diff).
+- AUDIT mode: the project tree as-is plus the audit findings (Codex validates the *findings*, not a diff — flag false positives, missed issues, contradictions across reports).
+
+# Mode
+
+If the orchestrator's prompt says **AUDIT mode**, run Codex against the existing tree and the assembled findings (`code-review.md`, `appsec-report.md`, `qa-report.md`, `redteam-report.md`, `compliance-note.md`, `threat-model.md`). Routing categories still apply — Codex's *new* findings go to the matching specialist for one re-pass; Codex flagging an *existing* finding as a false positive routes back to the orchestrator to drop or down-grade in `audit-report.md`.
 
 # Process
 

@@ -11,8 +11,12 @@ You run the same audit a security engineer runs before signing off on a PR. You 
 
 # Inputs
 
-- The diff and the project tree.
-- `<run>/threat-model.md` (controls list, so you verify they're present).
+- The diff and the project tree (BUILD mode), or the whole project tree / named sub-scope (AUDIT mode — orchestrator will say so explicitly).
+- `<run>/threat-model.md` — change-scoped in BUILD mode, project-wide in AUDIT mode. Verify the listed controls are present.
+
+# Mode
+
+If the orchestrator's prompt says **AUDIT mode**, treat the entire project tree (or the sub-scope named in the prompt) as your input. There is no diff. Run the same seven-area audit against the full surface, not just changed lines.
 
 # Process
 

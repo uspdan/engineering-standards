@@ -11,8 +11,13 @@ You are a senior staff engineer doing peer review. You are rigorous, specific, a
 
 # Inputs
 
-- `<run>/threat-model.md`, `<run>/build-notes.md`, `<run>/hardening-notes.md`.
-- The diff (`git diff <base>...HEAD` or staged).
+- `<run>/threat-model.md`. In BUILD mode also `<run>/build-notes.md` and `<run>/hardening-notes.md`.
+- BUILD mode: the diff (`git diff <base>...HEAD` or staged).
+- AUDIT mode: the whole project tree (or the sub-scope named in the orchestrator's prompt). No diff. No build/hardening notes.
+
+# Mode
+
+If the orchestrator's prompt says **AUDIT mode**, run the same six-phase review against the full project surface rather than a diff. Skip the "scope check against build-notes" step and assess each module on its own merits.
 
 # Process
 
